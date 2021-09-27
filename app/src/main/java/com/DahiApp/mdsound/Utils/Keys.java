@@ -10,21 +10,16 @@ import android.util.Log;
 import java.io.IOException;
 
 public class Keys {
+    public static final String MUSIC_SERVICE_ACTION_START = "com.example.android.start";
+    public static final String MUSIC_SERVICE_ACTION_PLAY = "com.example.android.play";
+    public static final String MUSIC_SERVICE_ACTION_PAUSE = "com.example.android.pause";
+    public static final String MUSIC_SERVICE_ACTION_STOP = "com.example.android.stop";
 
-    private static final String TAG = "test";
-
-    public static Bitmap getBitmapForSound(Context context, long soundID) {
+    public static Uri getBitmapForSound( long soundID) {
 
         Uri sArtworkUri = Uri
                 .parse("content://media/external/audio/albumart");
-        Uri albumArtUri = ContentUris.withAppendedId(sArtworkUri, soundID);
-        try {
-            return MediaStore.Images.Media.getBitmap(
-                    context.getContentResolver(), albumArtUri);
 
-        } catch (IOException e) {
-            Log.d(TAG, "getBitmapForSound: " + e.getMessage());
-            return null;
-        }
+        return ContentUris.withAppendedId(sArtworkUri, soundID);
     }
 }
