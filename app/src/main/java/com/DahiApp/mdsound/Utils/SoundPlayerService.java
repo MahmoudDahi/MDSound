@@ -1,5 +1,6 @@
 package com.DahiApp.mdsound.Utils;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,6 +15,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
+import android.widget.RemoteViews;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -91,7 +93,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         Intent pIntent = new Intent(this, SoundPlayerService.class);
         pIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PLAY);
 
-        PendingIntent playIntent = PendingIntent.getService(this, 100, pIntent,0);
+        PendingIntent playIntent = PendingIntent.getService(this, 100, pIntent, 0);
 
         //Intent for pause button
         Intent psIntent = new Intent(this, SoundPlayerService.class);
@@ -113,15 +115,27 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         PendingIntent mainIntent = PendingIntent.getActivity(
                 this, 0, mIntent, 0);
 
+        RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(),R.layout.notification_large);
+        notificationLayoutExpanded.setTextViewText(R.id.notification_title,sound.getTitle());
+        notificationLayoutExpanded.setTextViewText(R.id.notification_text,sound.getArtistName());
 
-        builder.setContentTitle(sound.getTitle())
-                .setContentText(sound.getArtistName())
+
+        builder
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(mainIntent)
-                .addAction(new NotificationCompat.Action(android.R.drawable.ic_media_play, "Play", playIntent))
-                .addAction(new NotificationCompat.Action(android.R.drawable.ic_media_play, "Pause", pauseIntent))
-                .addAction(new NotificationCompat.Action(android.R.drawable.ic_media_play, "Stop", stopIntent));
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                // Add media control buttons that invoke intents in your media service
+                .addAction(R.drawable.ic_prev, "Previous", playIntent) // #0
+                .addAction(R.drawable.ic_pause, "Pause", pauseIntent)  // #1
+                .addAction(R.drawable.ic_next, "Next", stopIntent)     // #2
+                // Apply the media style template
+                .setStyle(new NotificationCompat.MediaStyle()
+                        .setMediaSession(mySession))
+                .setContentTitle("Wonderful music")
+                .setContentText("My Awesome Band")
+                .setLargeIcon(albumArtBitmap);
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
@@ -174,7 +188,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
-        Log.d(TAG, "play: "+mediaPlayer);
+        Log.d(TAG, "play: " + mediaPlayer);
     }
 
     public void playSound(int position) {
