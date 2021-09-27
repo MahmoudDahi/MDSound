@@ -11,11 +11,12 @@ import com.DahiApp.mdsound.Model.Sound;
 import com.DahiApp.mdsound.Utils.Keys;
 import com.DahiApp.mdsound.Utils.OnClickAdapterListener;
 import com.DahiApp.mdsound.databinding.ItemSoundBinding;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
 public class SoundAdapter extends RecyclerView.Adapter<SoundAdapter.ViewHolder> {
-    private List<Sound> soundList;
+    private final List<Sound> soundList;
     private final OnClickAdapterListener onClickAdapterListener;
     private final Context context;
 
@@ -35,7 +36,9 @@ public class SoundAdapter extends RecyclerView.Adapter<SoundAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Sound sound = soundList.get(position);
-        holder.binding.imageListSong.setImageBitmap(Keys.getBitmapForSound(context, sound.getAlbumId()));
+        Picasso.get().load(Keys.getBitmapForSound(sound.getAlbumId())).fit()
+                .into(holder.binding.imageListSong);
+        holder.binding.imageListSong.setClipToOutline(true);
         holder.binding.songName.setText(sound.getTitle());
         holder.binding.singerName.setText(sound.getArtistName());
 

@@ -10,10 +10,11 @@
         android:id="@+id/image_list_song"
         android:layout_width="60dp"
         android:layout_height="match_parent"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
         android:scaleType="centerCrop"
+        android:background="@drawable/background_with_radius_corner"
         tools:src="@drawable/ic_launcher_background" />
 
 
@@ -23,8 +24,7 @@
         android:layout_weight="1"
         android:paddingStart="8dp"
         android:paddingTop="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp">
+        android:paddingEnd="8dp">
 
         <TextView
             android:id="@+id/song_name"
