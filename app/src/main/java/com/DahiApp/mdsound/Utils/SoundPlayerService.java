@@ -1,6 +1,5 @@
 package com.DahiApp.mdsound.Utils;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -34,6 +33,9 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     private final Binder mBinder = new SoundServiceBinder();
     private MediaPlayer mediaPlayer;
     private List<Sound> soundList;
+    private int soundPosition = -1;
+    private RemoteViews notificationLayoutExpanded;
+    private NotificationCompat.Builder builder;
 
 
     public class SoundServiceBinder extends Binder {
@@ -53,22 +55,26 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         switch (intent.getAction()) {
 
-            case Keys.MUSIC_SERVICE_ACTION_PLAY: {
+            case Keys.MUSIC_SERVICE_ACTION_PREVIOUS: {
                 Log.d(TAG, "onStartCommand: play called");
-                if (soundList != null && !soundList.isEmpty()) {
-                    play();
-                }
+                previous();
                 break;
             }
-            case Keys.MUSIC_SERVICE_ACTION_PAUSE: {
+            case Keys.MUSIC_SERVICE_ACTION_PLAY: {
                 Log.d(TAG, "onStartCommand: pause called");
-                pause();
+                play();
+                break;
+            }
+            case Keys.MUSIC_SERVICE_ACTION_NEXT: {
+                Log.d(TAG, "onStartCommand: next called");
+                next();
                 break;
             }
             case Keys.MUSIC_SERVICE_ACTION_STOP: {
                 Log.d(TAG, "onStartCommand: stop called");
                 stopForeground(true);
                 stopSelf();
+                break;
             }
             case Keys.MUSIC_SERVICE_ACTION_START: {
                 Log.d(TAG, "onStartCommand: start called");
@@ -87,19 +93,26 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     private void showNotification(Sound sound) {
 
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        builder = new NotificationCompat.Builder(this, CHANNEL_ID);
 
-        //Intent for play button
-        Intent pIntent = new Intent(this, SoundPlayerService.class);
-        pIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PLAY);
+        //Intent for previous button
+        Intent prevIntent = new Intent(this, SoundPlayerService.class);
+        prevIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PREVIOUS);
 
-        PendingIntent playIntent = PendingIntent.getService(this, 100, pIntent, 0);
+        PendingIntent previousIntent = PendingIntent.getService(this, 100, prevIntent, 0);
 
         //Intent for pause button
         Intent psIntent = new Intent(this, SoundPlayerService.class);
-        psIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PAUSE);
+        psIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PLAY);
 
-        PendingIntent pauseIntent = PendingIntent.getService(this, 100, psIntent, 0);
+        PendingIntent playIntent = PendingIntent.getService(this, 100, psIntent, 0);
+
+        //Intent for next button
+        Intent nIntent = new Intent(this, SoundPlayerService.class);
+        nIntent.setAction(Keys.MUSIC_SERVICE_ACTION_NEXT);
+
+        PendingIntent nextIntent = PendingIntent.getService(this, 100, nIntent, 0);
+
 
         //Intent for stop button
         Intent sIntent = new Intent(this, SoundPlayerService.class);
@@ -115,26 +128,28 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         PendingIntent mainIntent = PendingIntent.getActivity(
                 this, 0, mIntent, 0);
 
-        RemoteViews notificationLayoutExpanded = new RemoteViews(getPackageName(),R.layout.notification_large);
-        notificationLayoutExpanded.setTextViewText(R.id.notification_title,sound.getTitle());
-        notificationLayoutExpanded.setTextViewText(R.id.notification_text,sound.getArtistName());
+        notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.notification_large);
+        notificationLayoutExpanded.setTextViewText(R.id.notification_title, sound.getTitle());
+        notificationLayoutExpanded.setTextViewText(R.id.notification_text, sound.getArtistName());
+
+        notificationLayoutExpanded.setImageViewResource(R.id.prev_notification, R.drawable.ic_prev);
+        notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_pause);
+        notificationLayoutExpanded.setImageViewResource(R.id.next_notification, R.drawable.ic_next);
+
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.prev_notification, previousIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.pause_notification, playIntent);
+        notificationLayoutExpanded.setOnClickPendingIntent(R.id.next_notification, nextIntent);
 
 
         builder
+                .setCustomBigContentView(notificationLayoutExpanded)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(mainIntent)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
                 // Add media control buttons that invoke intents in your media service
-                .addAction(R.drawable.ic_prev, "Previous", playIntent) // #0
-                .addAction(R.drawable.ic_pause, "Pause", pauseIntent)  // #1
-                .addAction(R.drawable.ic_next, "Next", stopIntent)     // #2
                 // Apply the media style template
-                .setStyle(new NotificationCompat.MediaStyle()
-                        .setMediaSession(mySession))
-                .setContentTitle("Wonderful music")
-                .setContentText("My Awesome Band")
-                .setLargeIcon(albumArtBitmap);
+
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -170,6 +185,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
     public void setSoundList(List<Sound> sounds) {
         if (sounds != null && !sounds.isEmpty()) {
+            soundPosition = 0;
             soundList = sounds;
         }
     }
@@ -179,19 +195,59 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         return mediaPlayer.isPlaying();
     }
 
-    public void pause() {
-        if (isPlaying())
-            mediaPlayer.pause();
+    public void previous() {
+        if (soundPosition == -1 || soundPosition == 0)
+            return;
+        soundPosition--;
+        Uri contentUri = ContentUris.withAppendedId(
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, soundList.get(soundPosition).getId());
+
+
+        try {
+            mediaPlayer.reset();
+            mediaPlayer.setDataSource(getApplicationContext(), contentUri);
+            mediaPlayer.prepareAsync();
+            showNotification(soundList.get(soundPosition));
+        } catch (Exception e) {
+            Log.d(TAG, "playSong: " + e.getMessage() + soundList.get(soundPosition).getId());
+        }
+    }
+
+    public void next() {
+        if (soundPosition == -1 || soundPosition == soundList.size())
+            return;
+        soundPosition++;
+        Uri contentUri = ContentUris.withAppendedId(
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, soundList.get(soundPosition).getId());
+
+
+        try {
+            mediaPlayer.reset();
+            mediaPlayer.setDataSource(getApplicationContext(), contentUri);
+            mediaPlayer.prepareAsync();
+            showNotification(soundList.get(soundPosition));
+        } catch (Exception e) {
+            Log.d(TAG, "playSong: " + e.getMessage() + soundList.get(soundPosition).getId());
+        }
     }
 
     public void play() {
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+        if (mediaPlayer == null)
+            return;
+        if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
+            notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_pause);
+        } else {
+            mediaPlayer.pause();
+            notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_play);
         }
+        builder.setCustomBigContentView(notificationLayoutExpanded);
+        startForeground(123, builder.build());
         Log.d(TAG, "play: " + mediaPlayer);
     }
 
     public void playSound(int position) {
+        soundPosition = position;
         Uri contentUri = ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, soundList.get(position).getId());
 
@@ -224,6 +280,8 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         super.onDestroy();
         if (mediaPlayer != null)
             mediaPlayer.release();
+        stopForeground(true);
+        stopSelf();
     }
 
     @Override

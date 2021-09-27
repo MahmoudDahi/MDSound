@@ -33,7 +33,6 @@ public class MainActivity extends AppCompatActivity {
     private final ServiceConnection mServiceCon = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder iBinder) {
-
             SoundPlayerService.SoundServiceBinder soundServiceBinder =
                     (SoundPlayerService.SoundServiceBinder) iBinder;
             soundPlayerService = soundServiceBinder.getServices();
