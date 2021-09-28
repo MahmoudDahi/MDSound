@@ -6,6 +6,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentUris;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -13,8 +15,9 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.provider.MediaStore;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
-import android.widget.RemoteViews;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -23,6 +26,7 @@ import com.DahiApp.mdsound.Model.Sound;
 import com.DahiApp.mdsound.R;
 import com.DahiApp.mdsound.UI.MainActivity.MainActivity;
 
+import java.io.IOException;
 import java.util.List;
 
 public class SoundPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener {
@@ -34,8 +38,8 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     private MediaPlayer mediaPlayer;
     private List<Sound> soundList;
     private int soundPosition = -1;
-    private RemoteViews notificationLayoutExpanded;
     private NotificationCompat.Builder builder;
+    private MediaSessionCompat mSession;
 
 
     public class SoundServiceBinder extends Binder {
@@ -72,12 +76,14 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
             }
             case Keys.MUSIC_SERVICE_ACTION_STOP: {
                 Log.d(TAG, "onStartCommand: stop called");
+                mediaPlayer.reset();
                 stopForeground(true);
                 stopSelf();
                 break;
             }
             case Keys.MUSIC_SERVICE_ACTION_START: {
                 Log.d(TAG, "onStartCommand: start called");
+                stopForeground(true);
                 initMediaPlayer();
                 break;
             }
@@ -95,6 +101,57 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         builder = new NotificationCompat.Builder(this, CHANNEL_ID);
 
+
+        //Intent for home button
+        Intent mIntent = new Intent(this, MainActivity.class);
+        mIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent mainIntent = PendingIntent.getActivity(
+                this, 0, mIntent, 0);
+
+
+        Bitmap photo;
+        try {
+            photo = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Keys.getUriForSound(sound.getAlbumId()));
+        } catch (IOException e) {
+
+            photo = BitmapFactory.decodeResource(getResources(), R.drawable.background_with_radius_corner);
+        }
+
+        setBuilderAction(R.drawable.ic_pause);
+
+        builder
+                .setContentTitle(sound.getTitle())
+                .setContentText(sound.getArtistName())
+                .setLargeIcon(photo)
+                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                        .setMediaSession(mSession.getSessionToken()))
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setColor(getApplication().getResources().getColor(R.color.purple_200))
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(mainIntent)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+        // Add media control buttons that invoke intents in your media service
+        // Apply the media style template
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            final NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                    "Sound", importance);
+            channel.setDescription("control sound you will play it.");
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            final NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        startForeground(123, builder.build());
+    }
+
+    private void setBuilderAction(int ic_drawable_pause_play) {
         //Intent for previous button
         Intent prevIntent = new Intent(this, SoundPlayerService.class);
         prevIntent.setAction(Keys.MUSIC_SERVICE_ACTION_PREVIOUS);
@@ -120,50 +177,10 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         PendingIntent stopIntent = PendingIntent.getService(this, 100, sIntent, 0);
 
-        //Intent for stop button
-        Intent mIntent = new Intent(this, MainActivity.class);
-        sIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
-                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        PendingIntent mainIntent = PendingIntent.getActivity(
-                this, 0, mIntent, 0);
-
-        notificationLayoutExpanded = new RemoteViews(getPackageName(), R.layout.notification_large);
-        notificationLayoutExpanded.setTextViewText(R.id.notification_title, sound.getTitle());
-        notificationLayoutExpanded.setTextViewText(R.id.notification_text, sound.getArtistName());
-
-        notificationLayoutExpanded.setImageViewResource(R.id.prev_notification, R.drawable.ic_prev);
-        notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_pause);
-        notificationLayoutExpanded.setImageViewResource(R.id.next_notification, R.drawable.ic_next);
-
-        notificationLayoutExpanded.setOnClickPendingIntent(R.id.prev_notification, previousIntent);
-        notificationLayoutExpanded.setOnClickPendingIntent(R.id.pause_notification, playIntent);
-        notificationLayoutExpanded.setOnClickPendingIntent(R.id.next_notification, nextIntent);
-
-
-        builder
-                .setCustomBigContentView(notificationLayoutExpanded)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(mainIntent)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-                // Add media control buttons that invoke intents in your media service
-                // Apply the media style template
-
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            final NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "Sound", importance);
-            channel.setDescription("control sound you will play it.");
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            final NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-
-        startForeground(123, builder.build());
+        builder.addAction(R.drawable.ic_prev, "prev", previousIntent)
+                .addAction(ic_drawable_pause_play, "pause", playIntent)
+                .addAction(R.drawable.ic_next, "next", nextIntent)
+                .addAction(R.drawable.ic_stop, "next", stopIntent);
     }
 
     public void initMediaPlayer() {
@@ -180,6 +197,8 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         mediaPlayer.setOnErrorListener(this);
         mediaPlayer.setOnPreparedListener(this);
 
+        mSession = new MediaSessionCompat(getApplicationContext(), getPackageName());
+
 
     }
 
@@ -188,11 +207,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
             soundPosition = 0;
             soundList = sounds;
         }
-    }
-
-
-    public boolean isPlaying() {
-        return mediaPlayer.isPlaying();
     }
 
     public void previous() {
@@ -214,7 +228,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     }
 
     public void next() {
-        if (soundPosition == -1 || soundPosition == soundList.size())
+        if (soundPosition == -1 || soundPosition == soundList.size() - 1)
             return;
         soundPosition++;
         Uri contentUri = ContentUris.withAppendedId(
@@ -232,21 +246,26 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     }
 
     public void play() {
+
         if (mediaPlayer == null)
             return;
+        builder.clearActions();
         if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
-            notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_pause);
+            setBuilderAction(R.drawable.ic_pause);
         } else {
             mediaPlayer.pause();
-            notificationLayoutExpanded.setImageViewResource(R.id.pause_notification, R.drawable.ic_play);
+            setBuilderAction(R.drawable.ic_play);
         }
-        builder.setCustomBigContentView(notificationLayoutExpanded);
+
         startForeground(123, builder.build());
         Log.d(TAG, "play: " + mediaPlayer);
     }
 
     public void playSound(int position) {
+        Log.d(TAG, "playSound: ");
+        if (mediaPlayer==null)
+            initMediaPlayer();
         soundPosition = position;
         Uri contentUri = ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, soundList.get(position).getId());
@@ -265,6 +284,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnbind: ");
+        mSession.release();
         return true;
     }
 

@@ -16,7 +16,7 @@ public class Keys {
     public static final String MUSIC_SERVICE_ACTION_NEXT = "com.example.android.next";
     public static final String MUSIC_SERVICE_ACTION_STOP = "com.example.android.stop";
 
-    public static Uri getBitmapForSound( long soundID) {
+    public static Uri getUriForSound(long soundID) {
 
         Uri sArtworkUri = Uri
                 .parse("content://media/external/audio/albumart");

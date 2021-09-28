@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">MDSound</string>
+    <string name="label_play" />
+    <string name="label_pause" />
+    <string name="label_next" />
+    <string name="label_previous" />
 </resources>

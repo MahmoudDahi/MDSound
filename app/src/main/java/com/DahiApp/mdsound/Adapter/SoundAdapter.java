@@ -36,7 +36,7 @@ public class SoundAdapter extends RecyclerView.Adapter<SoundAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Sound sound = soundList.get(position);
-        Picasso.get().load(Keys.getBitmapForSound(sound.getAlbumId())).fit()
+        Picasso.get().load(Keys.getUriForSound(sound.getAlbumId())).fit()
                 .into(holder.binding.imageListSong);
         holder.binding.imageListSong.setClipToOutline(true);
         holder.binding.songName.setText(sound.getTitle());
