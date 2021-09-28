@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.DahiApp.mdsound.Model.Sound;
+import com.DahiApp.mdsound.R;
 import com.DahiApp.mdsound.Utils.Keys;
 import com.DahiApp.mdsound.Utils.OnClickAdapterListener;
 import com.DahiApp.mdsound.databinding.ItemSoundBinding;
@@ -18,12 +19,11 @@ import java.util.List;
 public class SoundAdapter extends RecyclerView.Adapter<SoundAdapter.ViewHolder> {
     private final List<Sound> soundList;
     private final OnClickAdapterListener onClickAdapterListener;
-    private final Context context;
 
-    public SoundAdapter(List<Sound> soundList, Context context, OnClickAdapterListener onClickAdapterListener) {
+
+    public SoundAdapter(List<Sound> soundList, OnClickAdapterListener onClickAdapterListener) {
         this.soundList = soundList;
         this.onClickAdapterListener = onClickAdapterListener;
-        this.context = context;
     }
 
     @NonNull
@@ -36,7 +36,7 @@ public class SoundAdapter extends RecyclerView.Adapter<SoundAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Sound sound = soundList.get(position);
-        Picasso.get().load(Keys.getUriForSound(sound.getAlbumId())).fit()
+        Picasso.get().load(Keys.getUriForSound(sound.getAlbumId())).fit().error(R.drawable.default_sound)
                 .into(holder.binding.imageListSong);
         holder.binding.imageListSong.setClipToOutline(true);
         holder.binding.songName.setText(sound.getTitle());

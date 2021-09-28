@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
             SoundPlayerService.SoundServiceBinder soundServiceBinder =
                     (SoundPlayerService.SoundServiceBinder) iBinder;
             soundPlayerService = soundServiceBinder.getServices();
-            mBound = true;
+
             Log.d(TAG, "onServiceConnected");
             if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -68,21 +68,20 @@ public class MainActivity extends AppCompatActivity {
                     if (result) {
                         getSoundList();
                     }
-
                 });
 
 
 
         Intent intent = new Intent(MainActivity.this, SoundPlayerService.class);
         intent.setAction(Keys.MUSIC_SERVICE_ACTION_START);
-        ContextCompat.startForegroundService(this, intent);
+        ContextCompat.startForegroundService(this,intent);
     }
 
     private void getSoundList() {
         mainViewModel.getSoundList(getContentResolver()).observe(this, sounds -> {
             if (sounds != null && !sounds.isEmpty()) {
                 soundPlayerService.setSoundList(sounds);
-                SoundAdapter soundAdapter = new SoundAdapter(sounds, this,
+                SoundAdapter soundAdapter = new SoundAdapter(sounds,
                         position -> soundPlayerService.playSound(position));
                 binding.recycleSound.setAdapter(soundAdapter);
                 binding.recycleSound.setLayoutManager(new LinearLayoutManager(this));

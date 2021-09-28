@@ -41,7 +41,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     private NotificationCompat.Builder builder;
     private MediaSessionCompat mSession;
 
-
     public class SoundServiceBinder extends Binder {
         public SoundPlayerService getServices() {
             return SoundPlayerService.this;
@@ -83,7 +82,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
             }
             case Keys.MUSIC_SERVICE_ACTION_START: {
                 Log.d(TAG, "onStartCommand: start called");
-                stopForeground(true);
                 initMediaPlayer();
                 break;
             }
@@ -97,7 +95,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     }
 
     private void showNotification(Sound sound) {
-
 
         builder = new NotificationCompat.Builder(this, CHANNEL_ID);
 
@@ -116,7 +113,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
             photo = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Keys.getUriForSound(sound.getAlbumId()));
         } catch (IOException e) {
 
-            photo = BitmapFactory.decodeResource(getResources(), R.drawable.background_with_radius_corner);
+            photo = BitmapFactory.decodeResource(getResources(), R.drawable.default_sound);
         }
 
         setBuilderAction(R.drawable.ic_pause);
@@ -186,6 +183,10 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     public void initMediaPlayer() {
         // ...initialize the MediaPlayer here...
         // ... other initialization here ...
+        if (mediaPlayer != null){
+            return;
+        }
+        stopForeground(true);
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setAudioAttributes(
                 new AudioAttributes.Builder()
@@ -196,6 +197,12 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         mediaPlayer.setOnErrorListener(this);
         mediaPlayer.setOnPreparedListener(this);
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                next();
+            }
+        });
 
         mSession = new MediaSessionCompat(getApplicationContext(), getPackageName());
 
@@ -264,8 +271,8 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
     public void playSound(int position) {
         Log.d(TAG, "playSound: ");
-        if (mediaPlayer==null)
-            initMediaPlayer();
+        if (mediaPlayer == null)
+            return;
         soundPosition = position;
         Uri contentUri = ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, soundList.get(position).getId());
@@ -284,7 +291,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnbind: ");
-        mSession.release();
         return true;
     }
 
@@ -300,6 +306,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         super.onDestroy();
         if (mediaPlayer != null)
             mediaPlayer.release();
+        mSession.release();
         stopForeground(true);
         stopSelf();
     }
