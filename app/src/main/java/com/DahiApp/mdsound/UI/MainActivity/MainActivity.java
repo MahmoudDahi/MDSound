@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(MainActivity.this, SoundPlayerService.class);
         intent.setAction(Keys.MUSIC_SERVICE_ACTION_START);
-        ContextCompat.startForegroundService(this,intent);
+        startService(intent);
     }
 
     private void getSoundList() {

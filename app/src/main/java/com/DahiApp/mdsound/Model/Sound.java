@@ -5,12 +5,18 @@ public class Sound {
     private String artistName ;
     private Long id ;
     private Long albumId ;
+    private Long duration;
 
-    public Sound(String title, String artistName, Long id, Long albumId) {
+    public Sound(String title, String artistName, Long id, Long albumId,Long duration) {
         this.title = title;
         this.artistName = artistName;
         this.id = id;
         this.albumId = albumId;
+        this.duration = duration;
+    }
+
+    public Long getDuration() {
+        return duration;
     }
 
     public String getTitle() {

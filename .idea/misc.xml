@@ -3,8 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
-        <entry key="..\:/Users/mahmoud.dahi/AndroidStudioProjects/MDSound/app/src/main/res/layout/activity_main.xml" value="0.18333333333333332" />
-        <entry key="..\:/Users/mahmoud.dahi/AndroidStudioProjects/MDSound/app/src/main/res/layout/item_sound.xml" value="0.18333333333333332" />
+        <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/drawable/ic_next.xml" value="0.2203125" />
+        <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/drawable/ic_pause.xml" value="0.2203125" />
+        <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/drawable/ic_play.xml" value="0.2203125" />
+        <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/drawable/ic_prev.xml" value="0.2203125" />
+        <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/drawable/ic_stop.xml" value="0.2203125" />
         <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/layout/activity_main.xml" value="0.19010416666666666" />
         <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/layout/item_sound.xml" value="0.20416666666666666" />
         <entry key="..\:/Users/mahmoud/AndroidStudioProjects/MDSound/app/src/main/res/layout/notification_large.xml" value="0.22" />

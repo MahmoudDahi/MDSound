@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
+import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
@@ -16,7 +17,9 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.MediaStore;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -39,7 +42,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     private List<Sound> soundList;
     private int soundPosition = -1;
     private NotificationCompat.Builder builder;
-    private MediaSessionCompat mSession;
+    private MediaSessionCompat mediaSession;
 
     public class SoundServiceBinder extends Binder {
         public SoundPlayerService getServices() {
@@ -98,7 +101,6 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         builder = new NotificationCompat.Builder(this, CHANNEL_ID);
 
-
         //Intent for home button
         Intent mIntent = new Intent(this, MainActivity.class);
         mIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -118,15 +120,30 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         setBuilderAction(R.drawable.ic_pause);
 
+
+        MediaMetadataCompat mediaMetadata = new MediaMetadataCompat.Builder()
+                .putString(MediaMetadata.METADATA_KEY_TITLE, sound.getTitle())
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, sound.getArtistName())
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.getDuration())
+                .build();
+        mediaSession.setMetadata(mediaMetadata);
+
+        int currentPosition = mediaPlayer.getCurrentPosition();
+        PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_PLAYING, currentPosition, 1)
+                .build();
+        mediaSession.setPlaybackState(playbackState);
+        mediaSession.setActive(true);
+
         builder
                 .setContentTitle(sound.getTitle())
                 .setContentText(sound.getArtistName())
                 .setLargeIcon(photo)
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
-                        .setMediaSession(mSession.getSessionToken()))
+                        .setMediaSession(mediaSession.getSessionToken()))
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setColor(getApplication().getResources().getColor(R.color.purple_200))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.md_sound)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(mainIntent)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
@@ -147,6 +164,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
 
         startForeground(123, builder.build());
     }
+
 
     private void setBuilderAction(int ic_drawable_pause_play) {
         //Intent for previous button
@@ -183,7 +201,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
     public void initMediaPlayer() {
         // ...initialize the MediaPlayer here...
         // ... other initialization here ...
-        if (mediaPlayer != null){
+        if (mediaPlayer != null) {
             return;
         }
         stopForeground(true);
@@ -204,8 +222,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
             }
         });
 
-        mSession = new MediaSessionCompat(getApplicationContext(), getPackageName());
-
+        mediaSession = new MediaSessionCompat(getApplicationContext(), getPackageName());
 
     }
 
@@ -257,14 +274,26 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         if (mediaPlayer == null)
             return;
         builder.clearActions();
+        PlaybackStateCompat playbackState;
         if (!mediaPlayer.isPlaying()) {
             mediaPlayer.start();
             setBuilderAction(R.drawable.ic_pause);
+            int currentPosition = mediaPlayer.getCurrentPosition();
+            playbackState = new PlaybackStateCompat.Builder()
+                    .setActions(0L)
+                    .setState(PlaybackStateCompat.STATE_PLAYING, currentPosition, 1)
+                    .build();
         } else {
             mediaPlayer.pause();
             setBuilderAction(R.drawable.ic_play);
-        }
+            playbackState = new PlaybackStateCompat.Builder()
+                    .setActions(0L)
+                    .setState(PlaybackStateCompat.STATE_PAUSED, mediaPlayer.getCurrentPosition()
+                            , 0)
+                    .build();
 
+        }
+        mediaSession.setPlaybackState(playbackState);
         startForeground(123, builder.build());
         Log.d(TAG, "play: " + mediaPlayer);
     }
@@ -306,7 +335,7 @@ public class SoundPlayerService extends Service implements MediaPlayer.OnPrepare
         super.onDestroy();
         if (mediaPlayer != null)
             mediaPlayer.release();
-        mSession.release();
+        mediaSession.release();
         stopForeground(true);
         stopSelf();
     }
